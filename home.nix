@@ -185,7 +185,7 @@
         "$mod SHIFT, 4, movetoworkspace, 4"
         "$mod SHIFT, 5, movetoworkspace, 5"
         # Screenshot
-        ", Print, exec, grim -g \"$(slurp)\" ~/Pictures/screenshot.png"
+        "$mod SHIFT, S, exec, grim -g \"$(slurp)\" - | wl-copy"
       ];
 
       bindm = [
