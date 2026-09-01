@@ -14,6 +14,9 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
+  # RX 9060 XT (RDNA 4 / Navi 44) requires kernel 6.14+ for amdgpu support
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+
   networking.hostName = "nixos"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 
@@ -48,8 +51,11 @@
   # Enable graphics support
   hardware.graphics.enable = true;
 
-  # Enable the XFCE Desktop Environment.
-  services.xserver.displayManager.lightdm.enable = true;
+  # Display manager — SDDM works reliably with Wayland/Hyprland
+  services.displayManager.sddm.enable = true;
+  services.displayManager.sddm.wayland.enable = true;
+
+  # Keep XFCE as fallback desktop
   services.xserver.desktopManager.xfce.enable = true;
 
   # Configure keymap in X11

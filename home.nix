@@ -145,6 +145,11 @@
 
       "$mod" = "SUPER";
 
+      env = [
+        "XCURSOR_SIZE,24"
+        "WLR_NO_HARDWARE_CURSORS,1"
+      ];
+
       bind = [
         "$mod, Return, exec, kitty"
         "$mod, Q, killactive"
@@ -182,7 +187,7 @@
 
       exec-once = [
         "waybar"
-        "hyprpaper"
+        "kitty"
       ];
     };
   };
