@@ -16,8 +16,6 @@
     # Hyprland ecosystem
     wofi
     wl-clipboard
-    # Fonts
-    terminus_font_ttf
     grim
     slurp
   ];
@@ -56,13 +54,13 @@
     settings = [{
       layer = "top";
       position = "top";
-      height = 22;
-      modules-left = [ "custom/apple" "hyprland/workspaces" ];
+      height = 24;
+      modules-left = [ "custom/nixos" "hyprland/workspaces" ];
       modules-center = [];
-      modules-right = [ "clock" ];
+      modules-right = [ "pulseaudio" "network" "battery" "clock" ];
 
-      "custom/apple" = {
-        format = "🍎";
+      "custom/nixos" = {
+        format = "";
         tooltip = false;
       };
 
@@ -72,14 +70,37 @@
         sort-by-number = true;
       };
 
+      pulseaudio = {
+        format = "  {volume}%";
+        format-muted = "  muted";
+        on-click = "pavucontrol";
+      };
+
+      network = {
+        format-wifi = "  {essid}";
+        format-ethernet = "  wired";
+        format-disconnected = "  offline";
+        tooltip-format = "{ifname}: {ipaddr}";
+      };
+
+      battery = {
+        format = "{icon}  {capacity}%";
+        format-charging = "  {capacity}%";
+        format-icons = [ "" "" "" "" "" ];
+        states = {
+          warning = 30;
+          critical = 15;
+        };
+      };
+
       clock = {
-        format = "{:%I:%M %p    %b %-d}";
-        tooltip-format = "{:%A, %B %-d, %Y}";
+        format = "{:%b %d   %I:%M %p}";
+        tooltip-format = "{:%A, %B %d, %Y}";
       };
     }];
     style = ''
       * {
-        font-family: "Terminus (TTF)", monospace;
+        font-family: "JetBrainsMono Nerd Font", "Symbols Nerd Font", monospace;
         font-size: 12px;
         border: none;
         border-radius: 0;
@@ -92,27 +113,42 @@
         color: #000000;
         border-bottom: 1px solid #404040;
       }
-      #custom-apple {
+      #custom-nixos {
+        font-size: 14px;
         padding: 0 10px;
-        font-size: 15px;
+        color: #000000;
+      }
+      #workspaces {
+        padding: 0 4px;
       }
       #workspaces button {
         padding: 1px 10px;
+        margin: 3px 2px;
         color: #000000;
-        background: transparent;
+        background: #c0c0c0;
         border-radius: 0;
-        box-shadow: none;
+        border: 1px solid #404040;
+        box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080;
         text-shadow: none;
       }
-      #workspaces button:hover,
-      #workspaces button.active {
-        background-color: #000000;
-        color: #c0c0c0;
-        box-shadow: none;
+      #workspaces button:hover {
+        background: #d0d0d0;
+        box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080;
       }
-      #clock {
-        padding: 1px 10px;
+      #workspaces button.active {
+        background: #b0b0b0;
+        box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #ffffff;
+        padding: 2px 9px 0 11px;
+      }
+      #pulseaudio, #network, #battery, #clock {
+        padding: 0 10px;
         color: #000000;
+      }
+      #battery.warning {
+        color: #806000;
+      }
+      #battery.critical {
+        color: #800000;
       }
     '';
   };
