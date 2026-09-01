@@ -65,9 +65,23 @@
       };
 
       "hyprland/workspaces" = {
-        format = "{name}";
+        format = "{name} {windows}";
+        format-window-separator = " ";
         on-click = "activate";
         sort-by-number = true;
+        window-rewrite-default = "";
+        window-rewrite = {
+          "class<firefox>" = "";
+          "class<kitty>" = "";
+          "class<[Cc]ode>" = "";
+          "class<[Nn]autilus>" = "";
+          "class<[Cc]hrom(e|ium)>" = "";
+          "class<discord>" = "";
+          "class<[Ss]potify>" = "";
+          "class<[Ss]lack>" = "";
+          "class<obsidian>" = "";
+          "title<.*[Yy]ou[Tt]ube.*>" = "";
+        };
       };
 
       pulseaudio = {
