@@ -93,6 +93,10 @@
   # Install firefox.
   programs.firefox.enable = true;
 
+  fonts.packages = with pkgs; [
+    nerd-fonts.jetbrains-mono
+  ];
+
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
