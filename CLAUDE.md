@@ -34,12 +34,20 @@ sudo nixos-rebuild switch --flake /etc/nixos#nixos
 - [x] Home Manager added
 - [x] Git configured (ethantong1337@gmail.com)
 - [x] Hyprland configured (dotfiles in home.nix)
-- [x] Rice stack (Waybar, Wofi, Kitty configured)
+- [x] Waybar, Wofi, Kitty configured
+- [x] Wallpaper (hyprpaper, /home/ethant/Downloads/Powerline.png)
 - [ ] Dev tools
 
+## Rice Theme: Retro Mac Classic
+Goal: Mac OS 8/9 aesthetic — flat gray, black text, Chicago typeface, square UI.
+Font: Terminus TTF (placeholder). Chicago FLF (.ttf) to be added when sourced.
+
+### Rice Phases
+- [ ] Phase 1: Waybar — Mac Classic menubar (IN PROGRESS)
+- [ ] Phase 2: Kitty terminal — light bg, retro palette
+- [ ] Phase 3: GTK theme + Nautilus — classic Mac window chrome
+- [ ] Phase 4: Hyprland borders + polish
+
 ## Planned Next Steps
-1. ~~Scaffold Hyprland config via Home Manager~~ Done
-2. ~~Add terminal (Kitty), launcher (Wofi), status bar (Waybar)~~ Done
-3. Wallpaper setup (hyprpaper installed, needs config)
-4. GTK/cursor theming
-5. Add dev tools / language toolchains
+1. Finish Phase 1 Waybar ricing
+2. Add dev tools / language toolchains
