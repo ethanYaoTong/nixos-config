@@ -33,11 +33,13 @@ sudo nixos-rebuild switch --flake /etc/nixos#nixos
 - [x] Flakes set up
 - [x] Home Manager added
 - [x] Git configured (ethantong1337@gmail.com)
-- [ ] Hyprland configured (enabled in system but no dotfiles yet)
-- [ ] Rice stack (Waybar, Wofi, Kitty, theming)
+- [x] Hyprland configured (dotfiles in home.nix)
+- [x] Rice stack (Waybar, Wofi, Kitty configured)
 - [ ] Dev tools
 
 ## Planned Next Steps
-1. Scaffold Hyprland config via Home Manager
-2. Add terminal (Kitty), launcher (Wofi), status bar (Waybar)
-3. Add dev tools / language toolchains
+1. ~~Scaffold Hyprland config via Home Manager~~ Done
+2. ~~Add terminal (Kitty), launcher (Wofi), status bar (Waybar)~~ Done
+3. Wallpaper setup (hyprpaper installed, needs config)
+4. GTK/cursor theming
+5. Add dev tools / language toolchains
