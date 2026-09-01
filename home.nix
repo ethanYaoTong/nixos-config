@@ -15,7 +15,6 @@
     curl
     # Hyprland ecosystem
     wofi
-    hyprpaper
     wl-clipboard
     grim
     slurp
@@ -94,6 +93,15 @@
         color: #cdd6f4;
       }
     '';
+  };
+
+  # Wallpaper
+  services.hyprpaper = {
+    enable = true;
+    settings = {
+      preload = [ "/home/ethant/Downloads/Powerline.png" ];
+      wallpaper = [ ",/home/ethant/Downloads/Powerline.png" ];
+    };
   };
 
   # Hyprland
