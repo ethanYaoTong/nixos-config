@@ -16,6 +16,8 @@
     # Hyprland ecosystem
     wofi
     wl-clipboard
+    # Fonts
+    terminus_font_ttf
     grim
     slurp
   ];
@@ -48,49 +50,69 @@
     };
   };
 
-  # Status bar
+  # Status bar — Mac Classic menubar
   programs.waybar = {
     enable = true;
     settings = [{
       layer = "top";
       position = "top";
-      modules-left = [ "hyprland/workspaces" ];
-      modules-center = [ "clock" ];
-      modules-right = [ "pulseaudio" "network" "battery" "tray" ];
-      clock.format = "{:%H:%M  %a %d %b}";
-      network = {
-        format-wifi = " {essid}";
-        format-ethernet = " connected";
-        format-disconnected = "disconnected";
+      height = 22;
+      modules-left = [ "custom/apple" "hyprland/workspaces" ];
+      modules-center = [];
+      modules-right = [ "clock" ];
+
+      "custom/apple" = {
+        format = "🍎";
+        tooltip = false;
       };
-      pulseaudio = {
-        format = " {volume}%";
-        format-muted = " muted";
+
+      "hyprland/workspaces" = {
+        format = "{name}";
+        on-click = "activate";
+        sort-by-number = true;
       };
-      battery = {
-        format = "{icon} {capacity}%";
-        format-icons = [ "" "" "" "" "" ];
+
+      clock = {
+        format = "{:%I:%M %p    %b %-d}";
+        tooltip-format = "{:%A, %B %-d, %Y}";
       };
     }];
     style = ''
       * {
-        font-family: "JetBrainsMono Nerd Font";
-        font-size: 13px;
+        font-family: "Terminus (TTF)", monospace;
+        font-size: 12px;
+        border: none;
+        border-radius: 0;
+        padding: 0;
+        margin: 0;
+        min-height: 0;
       }
       window#waybar {
-        background: rgba(30, 30, 46, 0.9);
-        color: #cdd6f4;
+        background-color: #c0c0c0;
+        color: #000000;
+        border-bottom: 1px solid #404040;
+      }
+      #custom-apple {
+        padding: 0 10px;
+        font-size: 15px;
       }
       #workspaces button {
-        padding: 0 8px;
-        color: #6c7086;
+        padding: 1px 10px;
+        color: #000000;
+        background: transparent;
+        border-radius: 0;
+        box-shadow: none;
+        text-shadow: none;
       }
+      #workspaces button:hover,
       #workspaces button.active {
-        color: #cdd6f4;
+        background-color: #000000;
+        color: #c0c0c0;
+        box-shadow: none;
       }
-      #clock, #network, #pulseaudio, #battery, #tray {
-        padding: 0 12px;
-        color: #cdd6f4;
+      #clock {
+        padding: 1px 10px;
+        color: #000000;
       }
     '';
   };
