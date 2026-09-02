@@ -37,6 +37,25 @@
     enable = true;
     defaultEditor = true;
     vimAlias = true;
+
+    plugins = with pkgs.vimPlugins; [
+      gruvbox-material
+    ];
+
+    extraLuaConfig = ''
+      vim.opt.termguicolors = true
+      vim.opt.background = "dark"
+
+      -- Gruvbox Material — matches kitty palette
+      vim.g.gruvbox_material_background = "medium"
+      vim.g.gruvbox_material_foreground = "material"
+      -- 2 = transparent background + transparent signcolumn/foldcolumn,
+      -- so kitty's blurred background shows through nvim
+      vim.g.gruvbox_material_transparent_background = 2
+      vim.g.gruvbox_material_better_performance = 1
+
+      vim.cmd.colorscheme("gruvbox-material")
+    '';
   };
 
   # System info fetch — Gruvbox palette on default NixOS logo
