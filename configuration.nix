@@ -12,7 +12,27 @@
 
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
+  boot.loader.systemd-boot.configurationLimit = 10;
   boot.loader.efi.canTouchEfiVariables = true;
+
+  # Automatic garbage collection: keep the last 10 system generations
+  systemd.services.nix-generation-cleanup = {
+    description = "Delete old NixOS generations, keeping the last 10";
+    serviceConfig.Type = "oneshot";
+    script = ''
+      ${pkgs.nix}/bin/nix-env --delete-generations +10 -p /nix/var/nix/profiles/system
+      ${pkgs.nix}/bin/nix-collect-garbage
+    '';
+  };
+
+  systemd.timers.nix-generation-cleanup = {
+    description = "Weekly cleanup of old NixOS generations";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "weekly";
+      Persistent = true;
+    };
+  };
 
   # RX 9060 XT (RDNA 4 / Navi 44) requires kernel 6.14+ for amdgpu support
   boot.kernelPackages = pkgs.linuxPackages_latest;

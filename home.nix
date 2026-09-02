@@ -5,6 +5,8 @@
   home.homeDirectory = "/home/ethant";
   home.stateVersion = "25.11";
 
+  home.file.".local/share/fonts/ChicagoKare-Regular.ttf".source = ./fonts/ChicagoKare-Regular.ttf;
+
   home.packages = with pkgs; [
     # Terminal utilities
     btop
@@ -81,8 +83,34 @@
     settings = {
       font_family = "JetBrainsMono Nerd Font";
       font_size = 12;
-      background_opacity = "0.95";
       window_padding_width = 8;
+
+      background_opacity = "0.90";
+
+      # Gruvbox Material Dark (Medium) — background overridden to neutral dark grey
+      foreground = "#D4BE98";
+      background = "#2A2A2A";
+      selection_foreground = "#D4BE98";
+      selection_background = "#45403D";
+      cursor = "#D4BE98";
+      cursor_text_color = "#2A2A2A";
+
+      color0 = "#32302F";
+      color8 = "#45403D";
+      color1 = "#EA6962";
+      color9 = "#EA6962";
+      color2 = "#A9B665";
+      color10 = "#A9B665";
+      color3 = "#D8A657";
+      color11 = "#D8A657";
+      color4 = "#7DAEA3";
+      color12 = "#7DAEA3";
+      color5 = "#D3869B";
+      color13 = "#D3869B";
+      color6 = "#89B482";
+      color14 = "#89B482";
+      color7 = "#D4BE98";
+      color15 = "#D4BE98";
     };
   };
 
@@ -152,7 +180,7 @@
     }];
     style = ''
       * {
-        font-family: "JetBrainsMono Nerd Font", "Symbols Nerd Font", monospace;
+        font-family: "Chicago Kare", "Symbols Nerd Font", monospace;
         font-size: 12px;
         border: none;
         border-radius: 0;
