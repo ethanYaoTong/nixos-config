@@ -115,6 +115,7 @@ in
     extraLuaConfig = ''
       vim.opt.termguicolors = true
       vim.opt.background = "dark"
+      vim.opt.clipboard = "unnamedplus"
 
       -- Gruvbox Material — matches kitty palette
       vim.g.gruvbox_material_background = "medium"
