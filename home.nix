@@ -1,11 +1,51 @@
 { config, pkgs, ... }:
 
+let
+  retrosmart-cursor = pkgs.stdenv.mkDerivation {
+    pname = "retrosmart-cursor";
+    version = "1.2.2-unstable-2026-09-02";
+    src = pkgs.fetchFromGitHub {
+      owner = "useless-anvil";
+      repo = "retrosmart-cursor";
+      rev = "29bbe605b73869fadab235c071210ab5cb593503";
+      hash = "sha256-xhYZv6l3pgQ2Z0RKKvCAshq3Gn7wr7hK7LMghXDqBII=";
+    };
+    nativeBuildInputs = with pkgs; [
+      bash
+      gnumake
+      imagemagick
+      xorg.xcursorgen
+      (python3.withPackages (ps: [ ps.pyyaml ps.pillow ]))
+    ];
+    buildPhase = ''
+      runHook preBuild
+      patchShebangs build.sh scripts
+      ./build.sh all
+      runHook postBuild
+    '';
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out/share/icons
+      cp -r build_themes/Linux/* $out/share/icons/
+      runHook postInstall
+    '';
+  };
+in
 {
   home.username = "ethant";
   home.homeDirectory = "/home/ethant";
   home.stateVersion = "25.11";
 
   home.file.".local/share/fonts/ChicagoKare-Regular.ttf".source = ./fonts/ChicagoKare-Regular.ttf;
+
+  home.pointerCursor = {
+    package = retrosmart-cursor;
+    name = "retrosmart-xcursor-mac-ish-gruvbox";
+    size = 24;
+    gtk.enable = true;
+    x11.enable = true;
+    hyprcursor.enable = true;
+  };
 
   home.packages = with pkgs; [
     # Terminal utilities
@@ -272,8 +312,8 @@
       ];
 
       general = {
-        gaps_in = 5;
-        gaps_out = 10;
+        gaps_in = 3;
+        gaps_out = 5;
         border_size = 2;
         "col.active_border" = "rgba(cba6f7ff) rgba(89b4faff) 45deg";
         "col.inactive_border" = "rgba(595959aa)";
@@ -281,7 +321,7 @@
       };
 
       decoration = {
-        rounding = 10;
+        rounding = 0;
         blur = {
           enabled = true;
           size = 8;

@@ -14,6 +14,12 @@
 - `/etc/nixos/configuration.nix` — system config
 - `/etc/nixos/hardware-configuration.nix` — auto-generated, don't edit
 - `/etc/nixos/home.nix` — Home Manager config for ethant
+- `/etc/nixos/fonts/` — TTFs installed declaratively via `home.file`
+
+## Boot & Generations
+- Dual-booting Windows; systemd-boot menu limited to 10 entries (`boot.loader.systemd-boot.configurationLimit = 10`)
+- Weekly systemd timer prunes system profile to the last 10 generations (`systemd.services.nix-generation-cleanup` + `.timers`)
+- Manual cleanup: `sudo nix-collect-garbage -d && nix-collect-garbage -d`
 
 ## Key Facts
 - Flakes enabled: `nix.settings.experimental-features = [ "nix-command" "flakes" ]`
@@ -38,16 +44,44 @@ sudo nixos-rebuild switch --flake /etc/nixos#nixos
 - [x] Wallpaper (hyprpaper, /home/ethant/Downloads/Powerline.png)
 - [ ] Dev tools
 
-## Rice Theme: Retro Mac Classic
-Goal: Mac OS 8/9 aesthetic — flat gray, black text, Chicago typeface, square UI.
-Font: Terminus TTF (placeholder). Chicago FLF (.ttf) to be added when sourced.
+## Rice Theme: Hybrid — Mac Classic chrome + Gruvbox Material apps
+Original goal was pure Mac OS 8/9 (flat gray, Chicago, square UI). Evolved into a hybrid:
+system chrome stays Mac Classic; terminal + editor use Gruvbox Material Dark on a neutral
+dark grey background so they read as "retro dark" rather than warm gruvbox brown.
+
+### Fonts
+- **Chicago Kare** — waybar menubar font. TTF lives at `fonts/ChicagoKare-Regular.ttf`,
+  installed via `home.file.".local/share/fonts/ChicagoKare-Regular.ttf"`.
+- JetBrainsMono Nerd Font — kitty (code readability wins over aesthetic here).
+
+### Waybar (Mac Classic menubar)
+- Chrome `#c0c0c0` background, black text, Chevy-bevel workspace buttons, sharp corners.
+- Font: Chicago Kare.
+
+### Kitty
+- Gruvbox Material Dark Medium palette (`foreground = #D4BE98`, standard gruvbox ANSI).
+- Background overridden to **`#2A2A2A`** (neutral dark grey, not gruvbox's warm `#292828`).
+- `background_opacity = 0.90` — Hyprland's global blur (`size 8, passes 2`) shows through.
+
+### Neovim
+- `gruvbox-material` plugin, `background = "medium"`, `foreground = "material"` (matches kitty).
+- `transparent_background = 2` so kitty's blur bleeds through nvim too (nvim has no native blur).
+
+### Hyprland
+- Windows: sharp corners (`rounding = 0`), tight gaps (`gaps_in = 3`, `gaps_out = 5`).
+- Global blur enabled (`size 8, passes 2`) — powers the transparent kitty/nvim effect.
+- Cursor: **Retrosmart Mac-ish Gruvbox** — packaged as an inline Nix derivation (see `let`
+  block at top of home.nix) that builds from `useless-anvil/retrosmart-cursor` and installs
+  via `home.pointerCursor` (gtk + x11 + hyprcursor).
 
 ### Rice Phases
-- [ ] Phase 1: Waybar — Mac Classic menubar (IN PROGRESS)
-- [ ] Phase 2: Kitty terminal — light bg, retro palette
+- [x] Phase 1: Waybar — Mac Classic menubar
+- [x] Phase 2: Kitty terminal — Gruvbox Material on dark grey (diverged from "light bg")
+- [x] Phase 2b: Neovim theme match — Gruvbox Material transparent
+- [x] Phase 2c: Cursor theme — Retrosmart Mac-ish Gruvbox
 - [ ] Phase 3: GTK theme + Nautilus — classic Mac window chrome
-- [ ] Phase 4: Hyprland borders + polish
+- [ ] Phase 4: Hyprland borders + further polish
 
 ## Planned Next Steps
-1. Finish Phase 1 Waybar ricing
+1. Phase 3: GTK theme (Mac Classic window chrome for Nautilus etc.)
 2. Add dev tools / language toolchains
