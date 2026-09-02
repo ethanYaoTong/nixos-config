@@ -30,6 +30,17 @@ let
       runHook postInstall
     '';
   };
+
+  power-menu = pkgs.writeShellScript "power-menu" ''
+    chosen=$(printf "%s\n" "⏻  Shutdown" "   Restart" "   Sleep" "   Log out" \
+      | ${pkgs.wofi}/bin/wofi --dmenu --prompt "Power" --width 220 --height 220)
+    case "$chosen" in
+      *Shutdown)  systemctl poweroff ;;
+      *Restart)   systemctl reboot ;;
+      *Sleep)     systemctl suspend ;;
+      *"Log out") ${pkgs.hyprland}/bin/hyprctl dispatch exit ;;
+    esac
+  '';
 in
 {
   home.username = "ethant";
@@ -181,12 +192,18 @@ in
       position = "top";
       height = 24;
       modules-left = [ "custom/nixos" "hyprland/workspaces" ];
-      modules-center = [];
+      modules-center = [ "custom/power" ];
       modules-right = [ "pulseaudio" "network" "battery" "clock" ];
 
       "custom/nixos" = {
         format = "";
         tooltip = false;
+      };
+
+      "custom/power" = {
+        format = "";
+        tooltip = false;
+        on-click = "${power-menu}";
       };
 
       "hyprland/workspaces" = {
@@ -240,7 +257,7 @@ in
     style = ''
       * {
         font-family: "Chicago Kare", "Symbols Nerd Font", monospace;
-        font-size: 12px;
+        font-size: 14px;
         border: none;
         border-radius: 0;
         padding: 0;
@@ -253,7 +270,7 @@ in
         border-bottom: 1px solid #404040;
       }
       #custom-nixos {
-        font-size: 14px;
+        font-size: 16px;
         padding: 0 10px;
         color: #000000;
       }
@@ -278,6 +295,22 @@ in
         background: #b0b0b0;
         box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #ffffff;
         padding: 2px 9px 0 11px;
+      }
+      #custom-power {
+        padding: 1px 14px;
+        margin: 3px 2px;
+        color: #000000;
+        background: #c0c0c0;
+        border: 1px solid #404040;
+        box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080;
+      }
+      #custom-power:hover {
+        background: #d0d0d0;
+      }
+      #custom-power:active {
+        background: #b0b0b0;
+        box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #ffffff;
+        padding: 2px 13px 0 15px;
       }
       #pulseaudio, #network, #battery, #clock {
         padding: 0 10px;
