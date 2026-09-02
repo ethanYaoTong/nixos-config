@@ -37,6 +37,44 @@
     vimAlias = true;
   };
 
+  # System info fetch — Gruvbox palette on default NixOS logo
+  programs.fastfetch = {
+    enable = true;
+    settings = {
+      logo.color = {
+        "1" = "38;2;131;165;152";   # gruvbox blue  (#83a598)
+        "2" = "38;2;142;192;124";   # gruvbox aqua  (#8ec07c)
+      };
+      display.color = {
+        title = "1;38;2;250;189;47"; # gruvbox yellow bold (#fabd2f)
+        keys  = "38;2;254;128;25";   # gruvbox orange (#fe8019)
+      };
+      modules = [
+        "title"
+        "separator"
+        "os"
+        "host"
+        "kernel"
+        "uptime"
+        "packages"
+        "shell"
+        "display"
+        "wm"
+        "terminal"
+        "terminalfont"
+        "cpu"
+        "gpu"
+        "memory"
+        "swap"
+        "disk"
+        "localip"
+        "locale"
+        "break"
+        "colors"
+      ];
+    };
+  };
+
   # Terminal
   programs.kitty = {
     enable = true;
@@ -180,7 +218,11 @@
   wayland.windowManager.hyprland = {
     enable = true;
     settings = {
-      monitor = ",preferred,auto,1";
+      monitor = [
+        "DP-1,1920x1080@144,0x0,1"
+        "HDMI-A-2,1440x900@59.887,-1440x0,1"
+        ",preferred,auto,1"
+      ];
 
       general = {
         gaps_in = 5;
