@@ -31,21 +31,32 @@ let
     '';
   };
 
-  power-menu = pkgs.writeShellScript "power-menu" ''
-    chosen=$(printf "%s\n" "⏻  Shutdown" "   Restart" "   Sleep" "   Log out" \
-      | ${pkgs.wofi}/bin/wofi --dmenu --prompt "Power" --width 220 --height 220)
-    case "$chosen" in
-      *Shutdown)  systemctl poweroff ;;
-      *Restart)   systemctl reboot ;;
-      *Sleep)     systemctl suspend ;;
-      *"Log out") ${pkgs.hyprland}/bin/hyprctl dispatch exit ;;
-    esac
-  '';
+  monaco-nerd-fonts = pkgs.stdenv.mkDerivation {
+    pname = "monaco-nerd-fonts";
+    version = "unstable-2026-09-02";
+    src = pkgs.fetchFromGitHub {
+      owner = "Karmenzind";
+      repo = "monaco-nerd-fonts";
+      rev = "cc39ad6314e0ba0035a9110160086eb5b6ff03ee";
+      hash = "sha256-T5NCy4mjXAxzNkDPm6vuKE91Jz9MZnsWLrjRPtrH/NQ=";
+    };
+    dontConfigure = true;
+    dontBuild = true;
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out/share/fonts/truetype/monaco-nerd
+      find . -type f -name '*.ttf' -exec cp {} $out/share/fonts/truetype/monaco-nerd/ \;
+      runHook postInstall
+    '';
+  };
+
 in
 {
   home.username = "ethant";
   home.homeDirectory = "/home/ethant";
   home.stateVersion = "25.11";
+
+  home.sessionPath = [ "$HOME/.config/emacs/bin" ];
 
   home.file.".local/share/fonts/ChicagoKare-Regular.ttf".source = ./fonts/ChicagoKare-Regular.ttf;
 
@@ -71,7 +82,15 @@ in
     wl-clipboard
     grim
     slurp
+    # Editors
+    vscode-fhs
+    emacs-pgtk
+    # Fonts
+    monaco-nerd-fonts
   ];
+
+  # Waybar dropdown menu (GTK XML, click-triggered from custom/power module)
+  home.file.".config/waybar/power_menu.xml".source = ./waybar/power_menu.xml;
 
   # Shell
   programs.bash.enable = true;
@@ -151,8 +170,8 @@ in
   programs.kitty = {
     enable = true;
     settings = {
-      font_family = "JetBrainsMono Nerd Font";
-      font_size = 12;
+      font_family = "Monaco Nerd Font Mono";
+      font_size = 13;
       window_padding_width = 8;
 
       background_opacity = "0.90";
@@ -192,18 +211,20 @@ in
       position = "top";
       height = 24;
       modules-left = [ "custom/nixos" "hyprland/workspaces" ];
-      modules-center = [ "custom/power" ];
+      modules-center = [];
       modules-right = [ "pulseaudio" "network" "battery" "clock" ];
 
       "custom/nixos" = {
         format = "";
         tooltip = false;
-      };
-
-      "custom/power" = {
-        format = "";
-        tooltip = false;
-        on-click = "${power-menu}";
+        menu = "on-click";
+        menu-file = "${config.home.homeDirectory}/.config/waybar/power_menu.xml";
+        menu-actions = {
+          shutdown = "systemctl poweroff";
+          reboot = "systemctl reboot";
+          suspend = "systemctl suspend";
+          logout = "hyprctl dispatch exit";
+        };
       };
 
       "hyprland/workspaces" = {
@@ -296,22 +317,6 @@ in
         box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #ffffff;
         padding: 2px 9px 0 11px;
       }
-      #custom-power {
-        padding: 1px 14px;
-        margin: 3px 2px;
-        color: #000000;
-        background: #c0c0c0;
-        border: 1px solid #404040;
-        box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080;
-      }
-      #custom-power:hover {
-        background: #d0d0d0;
-      }
-      #custom-power:active {
-        background: #b0b0b0;
-        box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #ffffff;
-        padding: 2px 13px 0 15px;
-      }
       #pulseaudio, #network, #battery, #clock {
         padding: 0 10px;
         color: #000000;
@@ -321,6 +326,28 @@ in
       }
       #battery.critical {
         color: #800000;
+      }
+      /* Native GTK dropdown fired by waybar's menu feature */
+      menu {
+        background-color: #c0c0c0;
+        color: #000000;
+        border: 1px solid #404040;
+        border-radius: 0;
+        padding: 3px 0;
+        box-shadow:
+          inset 1px 1px 0 #ffffff,
+          inset -1px -1px 0 #808080,
+          2px 2px 0 rgba(0, 0, 0, 0.35);
+      }
+      menu menuitem {
+        padding: 4px 18px;
+        color: #000000;
+        font-family: "Chicago Kare", "Symbols Nerd Font", monospace;
+        font-size: 14px;
+      }
+      menu menuitem:hover {
+        background-color: #7DAEA3;
+        color: #000000;
       }
     '';
   };
