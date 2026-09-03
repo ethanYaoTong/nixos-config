@@ -174,6 +174,7 @@ in
       font_family = "Monaco Nerd Font Mono";
       font_size = 11;
       window_padding_width = 8;
+      disable_ligatures = "always";
 
       background_opacity = "0.90";
 
@@ -240,7 +241,7 @@ in
           "class<[Cc]ode>" = "";
           "class<[Nn]autilus>" = "";
           "class<[Cc]hrom(e|ium)>" = "";
-          "class<discord>" = "";
+          "class<discord>" = "";
           "class<[Ss]potify>" = "";
           "class<[Ss]lack>" = "";
           "class<obsidian>" = "";
