@@ -31,6 +31,19 @@ let
     '';
   };
 
+  hyprRetileWorkspace = pkgs.writeShellApplication {
+    name = "hypr-retile-workspace";
+    runtimeInputs = with pkgs; [ hyprland jq ];
+    text = ''
+      ws=$(hyprctl activeworkspace -j | jq -r .id)
+      hyprctl clients -j \
+        | jq -r ".[] | select(.workspace.id == $ws and .floating == true) | .address" \
+        | while read -r addr; do
+            hyprctl dispatch settiled "address:$addr"
+          done
+    '';
+  };
+
   monaco-nerd-fonts = pkgs.stdenv.mkDerivation {
     pname = "monaco-nerd-fonts";
     version = "unstable-2026-09-02";
@@ -78,7 +91,6 @@ in
     wget
     curl
     # Hyprland ecosystem
-    wofi
     wl-clipboard
     grim
     slurp
@@ -175,6 +187,9 @@ in
       font_size = 11;
       window_padding_width = 8;
       disable_ligatures = "always";
+      # disable_ligatures only covers programming ligatures (calt); fi/fl are
+      # standard typography ligatures (liga/dlig) and need font_features.
+      font_features = "MonacoNFM -liga -dlig";
 
       background_opacity = "0.90";
 
@@ -202,6 +217,21 @@ in
       color14 = "#89B482";
       color7 = "#D4BE98";
       color15 = "#D4BE98";
+    };
+  };
+
+  # App launcher — Mac Classic Apple menu style
+  programs.rofi = {
+    enable = true;
+    theme = ./rofi/mac-classic.rasi;
+    extraConfig = {
+      modi = "drun";
+      show-icons = true;
+      drun-display-format = "{name}";
+      disable-history = false;
+      hide-scrollbar = true;
+      display-drun = "";
+      sidebar-mode = false;
     };
   };
 
@@ -363,6 +393,9 @@ in
     };
   };
 
+  # Syncthing — sync ~/org between this PC and macbook
+  services.syncthing.enable = true;
+
   # Hyprland
   wayland.windowManager.hyprland = {
     enable = true;
@@ -427,7 +460,9 @@ in
         "$mod, M, exit"
         "$mod, E, exec, nautilus"
         "$mod, V, togglefloating"
-        "$mod, R, exec, wofi --show drun"
+        "$mod, T, settiled"
+        "$mod SHIFT, T, exec, ${hyprRetileWorkspace}/bin/hypr-retile-workspace"
+        "ALT, Space, exec, rofi -show drun"
         "$mod, P, pseudo"
         "$mod, J, togglesplit"
         # Move focus
