@@ -36,12 +36,12 @@ mainbox {
     children:         [ inputbar, listview ];
 }
 
-/* Sunken bevel search field — dark on top/left, light on bottom/right */
+/* Search field — flat inset look (rasi doesn't support per-side border colors) */
 inputbar {
-    background-color: @bg-alt;
+    background-color: #ffffff;
     padding:          4px 6px;
     border:           1px solid;
-    border-color:     @hi-dark @hi-light @hi-light @hi-dark;
+    border-color:     @hi-dark;
     border-radius:    0;
     spacing:          6px;
     children:         [ prompt, entry ];

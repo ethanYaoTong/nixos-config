@@ -97,6 +97,8 @@ in
     # Editors
     vscode-fhs
     emacs-pgtk
+    # Languages
+    python3
     # Fonts
     monaco-nerd-fonts
   ];
@@ -406,6 +408,17 @@ in
         ",preferred,auto,1"
       ];
 
+      # Pin workspaces to monitors: 1-5 on main (DP-1), 10 dedicated to HDMI-A-2.
+      # New workspaces default to the focused monitor, which is DP-1.
+      workspace = [
+        "1, monitor:DP-1, default:true, persistent:true"
+        "2, monitor:DP-1, persistent:true"
+        "3, monitor:DP-1, persistent:true"
+        "4, monitor:DP-1, persistent:true"
+        "5, monitor:DP-1, persistent:true"
+        "10, monitor:HDMI-A-2, default:true, persistent:true"
+      ];
+
       general = {
         gaps_in = 3;
         gaps_out = 5;
@@ -476,12 +489,14 @@ in
         "$mod, 3, workspace, 3"
         "$mod, 4, workspace, 4"
         "$mod, 5, workspace, 5"
+        "$mod, 0, workspace, 10"
         # Move to workspace
         "$mod SHIFT, 1, movetoworkspace, 1"
         "$mod SHIFT, 2, movetoworkspace, 2"
         "$mod SHIFT, 3, movetoworkspace, 3"
         "$mod SHIFT, 4, movetoworkspace, 4"
         "$mod SHIFT, 5, movetoworkspace, 5"
+        "$mod SHIFT, 0, movetoworkspace, 10"
         # Screenshot
         "$mod SHIFT, S, exec, grim -g \"$(slurp)\" - | wl-copy"
       ];

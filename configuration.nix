@@ -70,6 +70,7 @@
   
   # Enable graphics support
   hardware.graphics.enable = true;
+  hardware.graphics.enable32Bit = true;  # 32-bit libs for Steam runtime
 
   # Display manager — SDDM works reliably with Wayland/Hyprland
   services.displayManager.sddm.enable = true;
@@ -139,6 +140,7 @@
     claude-code
     git
     discord
+    noisetorch
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -172,5 +174,10 @@
   programs.hyprland.enable = true;
   programs.hyprland.xwayland.enable = true;
 
-  
+  # NoiseTorch — RNNoise virtual mic for voice isolation (Discord etc.)
+  programs.noisetorch.enable = true;
+
+  # Steam
+  programs.steam.enable = true;
+  hardware.steam-hardware.enable = true;  # udev rules for controllers / Deck dock
 }
