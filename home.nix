@@ -107,7 +107,12 @@ in
   home.file.".config/waybar/power_menu.xml".source = ./waybar/power_menu.xml;
 
   # Shell
-  programs.bash.enable = true;
+  programs.bash = {
+    enable = true;
+    shellAliases = {
+      rebuild = "sudo nixos-rebuild switch --flake /etc/nixos#$(hostname)";
+    };
+  };
 
   # Git
   programs.git = {
@@ -243,7 +248,7 @@ in
     settings = [{
       layer = "top";
       position = "top";
-      height = 24;
+      height = 25;
       modules-left = [ "custom/nixos" "hyprland/workspaces" ];
       modules-center = [];
       modules-right = [ "pulseaudio" "network" "battery" "clock" ];
@@ -323,9 +328,10 @@ in
         background-color: #c0c0c0;
         color: #000000;
         border-bottom: 1px solid #404040;
+        padding: 1px 0 2px;
       }
       #custom-nixos {
-        font-size: 16px;
+        font-size: 13px;
         padding: 0 10px;
         color: #000000;
       }
@@ -377,7 +383,7 @@ in
         padding: 4px 18px;
         color: #000000;
         font-family: "Chicago Kare", "Symbols Nerd Font", monospace;
-        font-size: 14px;
+        font-size: 12px;
       }
       menu menuitem:hover {
         background-color: #7DAEA3;
@@ -446,18 +452,18 @@ in
         enabled = true;
         bezier = "myBezier, 0.05, 0.9, 0.1, 1.05";
         animation = [
-          "windows, 1, 7, myBezier"
-          "windowsOut, 1, 7, default, popin 80%"
-          "border, 1, 10, default"
-          "fade, 1, 7, default"
-          "workspaces, 1, 6, default"
+          "windows, 1, 4, myBezier"
+          "windowsOut, 1, 4, default, popin 80%"
+          "border, 1, 5, default"
+          "fade, 1, 4, default"
+          "workspaces, 0, 1, default"
         ];
       };
 
       input = {
         kb_layout = "us";
         follow_mouse = 1;
-        touchpad.natural_scroll = false;
+        touchpad.natural_scroll = true;
       };
 
       "$mod" = "SUPER";
