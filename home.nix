@@ -248,7 +248,7 @@ in
     settings = [{
       layer = "top";
       position = "top";
-      height = 25;
+      height = 26;
       modules-left = [ "custom/nixos" "hyprland/workspaces" ];
       modules-center = [];
       modules-right = [ "pulseaudio" "network" "battery" "clock" ];
@@ -317,7 +317,7 @@ in
     style = ''
       * {
         font-family: "Chicago Kare", "Symbols Nerd Font", monospace;
-        font-size: 14px;
+        font-size: 15px;
         border: none;
         border-radius: 0;
         padding: 0;
@@ -331,7 +331,7 @@ in
         padding: 1px 0 2px;
       }
       #custom-nixos {
-        font-size: 13px;
+        font-size: 14px;
         padding: 0 10px;
         color: #000000;
       }
@@ -383,7 +383,7 @@ in
         padding: 4px 18px;
         color: #000000;
         font-family: "Chicago Kare", "Symbols Nerd Font", monospace;
-        font-size: 12px;
+        font-size: 13px;
       }
       menu menuitem:hover {
         background-color: #7DAEA3;
