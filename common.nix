@@ -28,6 +28,31 @@
 
   networking.networkmanager.enable = true;
 
+  networking.networkmanager.ensureProfiles.profiles = {
+    eduroam = {
+      connection = {
+        id = "eduroam";
+        type = "wifi";
+      };
+      wifi = {
+        mode = "infrastructure";
+        ssid = "eduroam";
+      };
+      wifi-security = {
+        key-mgmt = "wpa-eap";
+      };
+      "802-1x" = {
+        eap = "peap;";
+        identity = "z5691989@ad.unsw.edu.au";
+        password = "@Et551271991337";
+        phase2-auth = "mschapv2";
+        phase1-auth-flags = "32";
+      };
+      ipv4.method = "auto";
+      ipv6.method = "auto";
+    };
+  };
+
   time.timeZone = "Australia/Sydney";
 
   i18n.defaultLocale = "en_GB.UTF-8";
@@ -73,7 +98,7 @@
   users.users.ethant = {
     isNormalUser = true;
     description = "Ethan Tong";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel" "video" ];
     packages = with pkgs; [];
   };
 

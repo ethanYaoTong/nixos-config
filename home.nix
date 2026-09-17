@@ -63,6 +63,175 @@ let
     '';
   };
 
+  pomo-daemon = pkgs.writeShellApplication {
+    name = "pomo-daemon";
+    runtimeInputs = with pkgs; [ coreutils bash ];
+    text = ''
+      work=''${1:-25}
+      brk=''${2:-5}
+      STATE=/tmp/pomo-state
+      PID=/tmp/pomo-daemon.pid
+      printf '%s\n' "$$" > "$PID"
+      cleanup() { printf 'IDLE\n' > "$STATE"; rm -f "$PID"; }
+      trap cleanup EXIT SIGTERM SIGINT
+      countdown() {
+        local label=$1
+        local total=$(( $2 * 60 ))
+        local i
+        for (( i=total; i>0; i-- )); do
+          printf '%s %02d:%02d\n' "$label" "$(( i/60 ))" "$(( i%60 ))" > "$STATE"
+          sleep 1
+        done
+      }
+      while true; do
+        countdown WORK "$work"
+        countdown BREAK "$brk"
+      done
+    '';
+  };
+
+  pomo-status = pkgs.writeShellApplication {
+    name = "pomo-status";
+    runtimeInputs = with pkgs; [ coreutils ];
+    text = ''
+      state=$(cat /tmp/pomo-state 2>/dev/null || printf 'IDLE')
+      if [ "$state" = "IDLE" ]; then
+        printf '󰔛\n'
+      else
+        printf '%s\n' "$state"
+      fi
+    '';
+  };
+
+  pomo-popup =
+    let
+      python = pkgs.python3.withPackages (ps: with ps; [ pygobject3 ]);
+      typelibs = with pkgs; [
+        gtk3 pango.out at-spi2-core gdk-pixbuf glib.out gobject-introspection harfbuzz
+      ];
+      typelib-path = pkgs.lib.concatMapStringsSep ":"
+        (p: "${p}/lib/girepository-1.0") typelibs;
+      pyScript = pkgs.writeTextFile {
+        name = "pomo-popup.py";
+        text = ''
+          import gi, os, signal, subprocess
+          gi.require_version('Gtk', '3.0')
+          from gi.repository import Gtk, GLib, Gdk
+
+          STATE = '/tmp/pomo-state'
+          PID_F = '/tmp/pomo-daemon.pid'
+          DAEMON = '${pomo-daemon}/bin/pomo-daemon'
+
+          CSS = b"""
+          * { font-family: "Chicago Kare", sans-serif; font-size: 13px; }
+          window { background-color: #c0c0c0; }
+          #status {
+            font-size: 15px; font-weight: bold; color: #000000;
+            padding: 4px; min-width: 140px;
+          }
+          spinbutton, spinbutton text, entry {
+            background-color: #ffffff; color: #000000;
+            border: 1px solid #808080; border-radius: 0;
+          }
+          button {
+            background: #c0c0c0; background-image: none; border-radius: 0;
+            border: 1px solid #404040; color: #000000; padding: 3px 14px;
+            box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080;
+          }
+          button:hover { background-color: #d0d0d0; background-image: none; }
+          button:active { box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #ffffff; }
+          separator { background-color: #808080; min-height: 1px; }
+          label { color: #000000; }
+          """
+
+          class Win(Gtk.Window):
+            def __init__(self):
+              super().__init__(title="Pomodoro")
+              self.set_resizable(False)
+              self.set_border_width(12)
+              p = Gtk.CssProvider()
+              p.load_from_data(CSS)
+              Gtk.StyleContext.add_provider_for_screen(
+                Gdk.Screen.get_default(), p, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+              box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+              self.add(box)
+
+              self.lbl = Gtk.Label(label="Idle")
+              self.lbl.set_name("status")
+              box.pack_start(self.lbl, False, False, 0)
+              box.pack_start(Gtk.Separator(), False, False, 0)
+
+              g = Gtk.Grid(row_spacing=6, column_spacing=10)
+              box.pack_start(g, False, False, 0)
+              g.attach(Gtk.Label(label="Work (min):", xalign=0.0), 0, 0, 1, 1)
+              self.ws = Gtk.SpinButton.new_with_range(1, 90, 1)
+              self.ws.set_value(25)
+              g.attach(self.ws, 1, 0, 1, 1)
+              g.attach(Gtk.Label(label="Break (min):", xalign=0.0), 0, 1, 1, 1)
+              self.bs = Gtk.SpinButton.new_with_range(1, 30, 1)
+              self.bs.set_value(5)
+              g.attach(self.bs, 1, 1, 1, 1)
+
+              box.pack_start(Gtk.Separator(), False, False, 0)
+              bb = Gtk.Box(spacing=8, homogeneous=True)
+              st = Gtk.Button(label="Start"); st.connect("clicked", self.start)
+              sp = Gtk.Button(label="Stop");  sp.connect("clicked", self.stop)
+              bb.pack_start(st, True, True, 0)
+              bb.pack_start(sp, True, True, 0)
+              box.pack_start(bb, False, False, 0)
+
+              GLib.timeout_add(500, self.tick)
+              self.tick()
+
+            def tick(self):
+              try:    st = open(STATE).read().strip()
+              except Exception: st = "IDLE"
+              self.lbl.set_text(st if st != "IDLE" else "Idle")
+              return True
+
+            def start(self, _):
+              if os.path.exists(PID_F):
+                try: os.kill(int(open(PID_F).read()), signal.SIGTERM)
+                except Exception: pass
+              subprocess.Popen(
+                [DAEMON, str(int(self.ws.get_value())), str(int(self.bs.get_value()))],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            def stop(self, _):
+              if os.path.exists(PID_F):
+                try: os.kill(int(open(PID_F).read()), signal.SIGTERM)
+                except Exception: pass
+              with open(STATE, 'w') as f: f.write("IDLE\n")
+
+          GLib.set_prgname("pomodoro-popup")
+          GLib.set_application_name("Pomodoro")
+          w = Win()
+          w.connect("destroy", Gtk.main_quit)
+          w.show_all()
+          Gtk.main()
+        '';
+      };
+    in pkgs.writeShellApplication {
+      name = "pomo-popup";
+      text = ''
+        export GI_TYPELIB_PATH="${typelib-path}"
+        exec ${python}/bin/python3 ${pyScript}
+      '';
+    };
+
+  pomo-toggle = pkgs.writeShellApplication {
+    name = "pomo-toggle";
+    runtimeInputs = with pkgs; [ hyprland procps ];
+    text = ''
+      if pgrep -f pomo-popup >/dev/null 2>&1; then
+        hyprctl dispatch closewindow "class:pomodoro-popup"
+      else
+        ${pomo-popup}/bin/pomo-popup &
+      fi
+    '';
+  };
+
 in
 {
   home.username = "ethant";
@@ -99,18 +268,24 @@ in
     emacs-pgtk
     # Languages
     python3
+    # Brightness control
+    brightnessctl
+    # Apps
+    obsidian
+    pomo-daemon pomo-status pomo-popup pomo-toggle
     # Fonts
     monaco-nerd-fonts
   ];
 
   # Waybar dropdown menu (GTK XML, click-triggered from custom/power module)
   home.file.".config/waybar/power_menu.xml".source = ./waybar/power_menu.xml;
+  home.file.".config/waybar/pomodoro_menu.xml".source = ./waybar/pomodoro_menu.xml;
 
   # Shell
   programs.bash = {
     enable = true;
     shellAliases = {
-      rebuild = "sudo nixos-rebuild switch --flake /etc/nixos#$(hostname)";
+      rebuild = "sudo nixos-rebuild switch --flake /etc/nixos#laptop";
     };
   };
 
@@ -191,7 +366,7 @@ in
     enable = true;
     settings = {
       font_family = "Monaco Nerd Font Mono";
-      font_size = 11;
+      font_size = 12;
       window_padding_width = 8;
       disable_ligatures = "always";
       # disable_ligatures only covers programming ligatures (calt); fi/fl are
@@ -251,7 +426,7 @@ in
       height = 26;
       modules-left = [ "custom/nixos" "hyprland/workspaces" ];
       modules-center = [];
-      modules-right = [ "pulseaudio" "network" "battery" "clock" ];
+      modules-right = [ "custom/pomodoro" "pulseaudio" "network" "battery" "clock" ];
 
       "custom/nixos" = {
         format = "";
@@ -284,6 +459,14 @@ in
           "class<obsidian>" = "";
           "title<.*[Yy]ou[Tt]ube.*>" = "";
         };
+      };
+
+      "custom/pomodoro" = {
+        format = "{}";
+        exec = "${pomo-status}/bin/pomo-status";
+        interval = 1;
+        on-click = "${pomo-toggle}/bin/pomo-toggle";
+        tooltip = false;
       };
 
       pulseaudio = {
@@ -357,6 +540,11 @@ in
         box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #ffffff;
         padding: 2px 9px 0 11px;
       }
+      #custom-pomodoro {
+        padding: 0 10px;
+        color: #000000;
+        min-width: 90px;
+      }
       #pulseaudio, #network, #battery, #clock {
         padding: 0 10px;
         color: #000000;
@@ -417,11 +605,11 @@ in
       # Pin workspaces to monitors: 1-5 on main (DP-1), 10 dedicated to HDMI-A-2.
       # New workspaces default to the focused monitor, which is DP-1.
       workspace = [
-        "1, monitor:DP-1, default:true, persistent:true"
-        "2, monitor:DP-1, persistent:true"
-        "3, monitor:DP-1, persistent:true"
-        "4, monitor:DP-1, persistent:true"
-        "5, monitor:DP-1, persistent:true"
+        "1, default:true, persistent:true"
+        "2, persistent:true"
+        "3, persistent:true"
+        "4, persistent:true"
+        "5, persistent:true"
         "10, monitor:HDMI-A-2, default:true, persistent:true"
       ];
 
@@ -516,10 +704,20 @@ in
       bindel = [
         ", XF86AudioRaiseVolume, exec, wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"
         ", XF86AudioLowerVolume, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+        ", XF86MonBrightnessUp, exec, brightnessctl set 5%+"
+        ", XF86MonBrightnessDown, exec, brightnessctl set 5%-"
       ];
       bindl = [
         ", XF86AudioMute, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
         ", XF86AudioMicMute, exec, wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
+      ];
+
+      windowrulev2 = [
+        "float, class:^(pomodoro-popup)$"
+        "size 300 230, class:^(pomodoro-popup)$"
+        "move cursor -150 0, class:^(pomodoro-popup)$"
+        "animation slide, class:^(pomodoro-popup)$"
+        "noinitialfocus, class:^(pomodoro-popup)$"
       ];
 
       exec-once = [
