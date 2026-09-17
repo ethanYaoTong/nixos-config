@@ -31,7 +31,8 @@
 
 ## Rebuild Command
 ```bash
-sudo nixos-rebuild switch --flake /etc/nixos#nixos
+sudo nixos-rebuild switch --flake /etc/nixos#laptop  # laptop
+sudo nixos-rebuild switch --flake /etc/nixos#nixos   # PC
 ```
 (git must be in PATH — it's now permanently installed so no nix-shell wrapper needed)
 

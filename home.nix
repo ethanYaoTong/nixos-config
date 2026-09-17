@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, spicetify-nix, ... }:
 
 let
   retrosmart-cursor = pkgs.stdenv.mkDerivation {
@@ -65,28 +65,42 @@ let
 
   pomo-daemon = pkgs.writeShellApplication {
     name = "pomo-daemon";
-    runtimeInputs = with pkgs; [ coreutils bash ];
+    runtimeInputs = with pkgs; [ coreutils util-linux pulseaudio ];
     text = ''
-      work=''${1:-25}
-      brk=''${2:-5}
+      phase=''${1:-WORK}
+      mins=''${2:-25}
+      cur=''${3:-1}
+      total=''${4:-4}
       STATE=/tmp/pomo-state
-      PID=/tmp/pomo-daemon.pid
-      printf '%s\n' "$$" > "$PID"
-      cleanup() { printf 'IDLE\n' > "$STATE"; rm -f "$PID"; }
-      trap cleanup EXIT SIGTERM SIGINT
-      countdown() {
-        local label=$1
-        local total=$(( $2 * 60 ))
-        local i
-        for (( i=total; i>0; i-- )); do
-          printf '%s %02d:%02d\n' "$label" "$(( i/60 ))" "$(( i%60 ))" > "$STATE"
-          sleep 1
-        done
-      }
-      while true; do
-        countdown WORK "$work"
-        countdown BREAK "$brk"
+      CTRL=/tmp/pomo-ctrl
+      LOCK=/tmp/pomo-daemon.lock
+      SOUND="${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga"
+
+      # Only one daemon may run at a time; second instance exits immediately.
+      exec 200>"$LOCK"
+      flock -n 200 || exit 0
+
+      printf 'run\n' > "$CTRL"
+
+      secs=$(( mins * 60 ))
+      for (( i=secs; i>0; i-- )); do
+        if [ "$(cat "$CTRL" 2>/dev/null || printf stop)" != "run" ]; then
+          printf 'IDLE\n' > "$STATE"
+          exit 0
+        fi
+        printf '%s %02d:%02d %d/%d\n' "$phase" "$(( i/60 ))" "$(( i%60 ))" "$cur" "$total" > "$STATE"
+        sleep 1
       done
+
+      # Session finished naturally — set READY_<next> or DONE, then beep.
+      if [ "$phase" = "WORK" ]; then
+        printf 'READY_BREAK %d/%d\n' "$cur" "$total" > "$STATE"
+      elif [ "$cur" -ge "$total" ]; then
+        printf 'DONE %d/%d\n' "$cur" "$total" > "$STATE"
+      else
+        printf 'READY_WORK %d/%d\n' "$(( cur + 1 ))" "$total" > "$STATE"
+      fi
+      paplay "$SOUND" || true
     '';
   };
 
@@ -95,11 +109,17 @@ let
     runtimeInputs = with pkgs; [ coreutils ];
     text = ''
       state=$(cat /tmp/pomo-state 2>/dev/null || printf 'IDLE')
-      if [ "$state" = "IDLE" ]; then
-        printf '󰔛\n'
-      else
-        printf '%s\n' "$state"
-      fi
+      # shellcheck disable=SC2086
+      set -- $state
+      kind=''${1:-IDLE}
+      rest=''${*:2}
+      case "$kind" in
+        IDLE) printf 'ポモドーロ\n' ;;
+        READY_WORK) printf 'Work! %s\n' "$rest" ;;
+        READY_BREAK) printf 'Break! %s\n' "$rest" ;;
+        DONE) printf 'Done! %s\n' "$rest" ;;
+        *) printf '%s\n' "$state" ;;
+      esac
     '';
   };
 
@@ -119,7 +139,7 @@ let
           from gi.repository import Gtk, GLib, Gdk
 
           STATE = '/tmp/pomo-state'
-          PID_F = '/tmp/pomo-daemon.pid'
+          CTRL = '/tmp/pomo-ctrl'
           DAEMON = '${pomo-daemon}/bin/pomo-daemon'
 
           CSS = b"""
@@ -173,35 +193,98 @@ let
               self.bs.set_value(5)
               g.attach(self.bs, 1, 1, 1, 1)
 
+              g.attach(Gtk.Label(label="Sessions:", xalign=0.0), 0, 2, 1, 1)
+              self.ss = Gtk.SpinButton.new_with_range(1, 20, 1)
+              self.ss.set_value(4)
+              g.attach(self.ss, 1, 2, 1, 1)
+
               box.pack_start(Gtk.Separator(), False, False, 0)
-              bb = Gtk.Box(spacing=8, homogeneous=True)
-              st = Gtk.Button(label="Start"); st.connect("clicked", self.start)
-              sp = Gtk.Button(label="Stop");  sp.connect("clicked", self.stop)
-              bb.pack_start(st, True, True, 0)
-              bb.pack_start(sp, True, True, 0)
+              bb = Gtk.Box(spacing=6, homogeneous=True)
+              self.start_btn = Gtk.Button(label="Start")
+              self.start_btn.connect("clicked", self.start)
+              self.stop_btn = Gtk.Button(label="Stop")
+              self.stop_btn.connect("clicked", self.stop)
+              self.next_btn = Gtk.Button(label="Next")
+              self.next_btn.connect("clicked", self.next_session)
+              bb.pack_start(self.start_btn, True, True, 0)
+              bb.pack_start(self.stop_btn, True, True, 0)
+              bb.pack_start(self.next_btn, True, True, 0)
               box.pack_start(bb, False, False, 0)
 
               GLib.timeout_add(500, self.tick)
               self.tick()
 
+            def read_state(self):
+              try: return open(STATE).read().strip()
+              except Exception: return "IDLE"
+
+            def parse_session(self, parts):
+              if parts and "/" in parts[-1]:
+                try:
+                  c, t = parts[-1].split("/")
+                  return int(c), int(t), parts[-1]
+                except Exception:
+                  pass
+              return None, None, ""
+
             def tick(self):
-              try:    st = open(STATE).read().strip()
-              except Exception: st = "IDLE"
-              self.lbl.set_text(st if st != "IDLE" else "Idle")
+              parts = self.read_state().split()
+              kind = parts[0] if parts else "IDLE"
+              cur, total, sess = self.parse_session(parts)
+              suffix = " (" + sess + ")" if sess else ""
+
+              if kind == "WORK" and len(parts) >= 3:
+                display = "WORK " + parts[1] + suffix
+              elif kind == "BREAK" and len(parts) >= 3:
+                display = "BREAK " + parts[1] + suffix
+              elif kind == "READY_BREAK":
+                display = "Break Ready!" + suffix
+              elif kind == "READY_WORK":
+                display = "Work Ready!" + suffix
+              elif kind == "DONE":
+                display = "All Done!" + suffix
+              else:
+                display = "Idle"
+
+              self.lbl.set_text(display)
+              running = kind in ("WORK", "BREAK") and len(parts) >= 3
+              ready = kind in ("READY_WORK", "READY_BREAK")
+              self.start_btn.set_sensitive(not running)
+              self.stop_btn.set_sensitive(running or ready)
+              self.next_btn.set_sensitive(ready)
               return True
 
+            def stop_daemon(self):
+              try:
+                with open(CTRL, 'w') as f: f.write("stop")
+              except Exception: pass
+              subprocess.run(['pkill', '-KILL', '-f', 'bin/pomo-daemon'], check=False)
+
+            def _spawn_daemon(self, phase, mins, cur, total):
+              self.stop_daemon()
+              def go():
+                subprocess.Popen(
+                  [DAEMON, phase, str(mins), str(cur), str(total)],
+                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return False
+              GLib.timeout_add(300, go)
+
             def start(self, _):
-              if os.path.exists(PID_F):
-                try: os.kill(int(open(PID_F).read()), signal.SIGTERM)
-                except Exception: pass
-              subprocess.Popen(
-                [DAEMON, str(int(self.ws.get_value())), str(int(self.bs.get_value()))],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+              total = int(self.ss.get_value())
+              self._spawn_daemon("WORK", int(self.ws.get_value()), 1, total)
+
+            def next_session(self, _):
+              parts = self.read_state().split()
+              cur, total, _ = self.parse_session(parts)
+              if cur is None: return
+              kind = parts[0]
+              if kind == "READY_BREAK":
+                self._spawn_daemon("BREAK", int(self.bs.get_value()), cur, total)
+              elif kind == "READY_WORK":
+                self._spawn_daemon("WORK", int(self.ws.get_value()), cur, total)
 
             def stop(self, _):
-              if os.path.exists(PID_F):
-                try: os.kill(int(open(PID_F).read()), signal.SIGTERM)
-                except Exception: pass
+              self.stop_daemon()
               with open(STATE, 'w') as f: f.write("IDLE\n")
 
           GLib.set_prgname("pomodoro-popup")
@@ -214,6 +297,7 @@ let
       };
     in pkgs.writeShellApplication {
       name = "pomo-popup";
+      runtimeInputs = with pkgs; [ procps ];
       text = ''
         export GI_TYPELIB_PATH="${typelib-path}"
         exec ${python}/bin/python3 ${pyScript}
@@ -232,8 +316,71 @@ let
     '';
   };
 
+  spicePkgs = spicetify-nix.legacyPackages.${pkgs.system};
+
 in
 {
+  imports = [ spicetify-nix.homeManagerModules.default ];
+
+  programs.spicetify = {
+    enable = true;
+    theme = spicePkgs.themes.comfy;
+    colorScheme = "Everforest";
+    enabledExtensions = with spicePkgs.extensions; [
+      shuffle
+      hidePodcasts
+      fullAppDisplay
+      {
+        src = "${pkgs.fetchFromGitHub {
+          owner = "rxri";
+          repo = "spicetify-extensions";
+          rev = "5da6cf1bb723f9efd0177f5fa4f4673b9e0c0936";
+          hash = "sha256-8sx98scFd3C/n9KqpHPVf8/F6UX9lB9t23QMenJtZcM=";
+        }}/adblock";
+        name = "adblock.js";
+      }
+      {
+        src = pkgs.writeTextDir "solid-scrubbar.js" ''
+          (function solidScrubbar() {
+            const style = document.createElement('style');
+            style.id = 'solid-scrubbar-style';
+            style.textContent = `
+              .playback-progressbar-fg,
+              .progress-bar-fg,
+              .progress-bar__fg,
+              .x-progressBar-fillForeground {
+                background: var(--spice-text) !important;
+                background-image: none !important;
+                box-shadow: none !important;
+                filter: none !important;
+              }
+              .playback-progressbar-bg,
+              .progress-bar-bg {
+                background: rgba(255,255,255,0.15) !important;
+                filter: none !important;
+              }
+              .playback-progressbar__slider,
+              .progress-bar__slider,
+              .x-progressBar-sliderHandle {
+                display: block !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                width: 12px !important;
+                height: 12px !important;
+                background: var(--spice-text) !important;
+                border-radius: 50% !important;
+                border: none !important;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+              }
+            `;
+            document.head.appendChild(style);
+          })();
+        '';
+        name = "solid-scrubbar.js";
+      }
+    ];
+  };
+
   home.username = "ethant";
   home.homeDirectory = "/home/ethant";
   home.stateVersion = "25.11";
@@ -541,9 +688,16 @@ in
         padding: 2px 9px 0 11px;
       }
       #custom-pomodoro {
-        padding: 0 10px;
+        padding: 1px 10px;
+        margin: 3px 4px;
         color: #000000;
-        min-width: 90px;
+        background: #c0c0c0;
+        border: 1px solid #404040;
+        box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080;
+        min-width: 130px;
+      }
+      #custom-pomodoro:hover {
+        background: #d0d0d0;
       }
       #pulseaudio, #network, #battery, #clock {
         padding: 0 10px;
@@ -714,7 +868,7 @@ in
 
       windowrulev2 = [
         "float, class:^(pomodoro-popup)$"
-        "size 300 230, class:^(pomodoro-popup)$"
+        "size 300 275, class:^(pomodoro-popup)$"
         "move cursor -150 0, class:^(pomodoro-popup)$"
         "animation slide, class:^(pomodoro-popup)$"
         "noinitialfocus, class:^(pomodoro-popup)$"
