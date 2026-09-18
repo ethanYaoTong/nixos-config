@@ -290,7 +290,18 @@ let
           GLib.set_prgname("pomodoro-popup")
           GLib.set_application_name("Pomodoro")
           w = Win()
+          w._enters = 0
+          def on_enter(*_):
+            w._enters += 1
+            return False
+          def on_focus_out(*_):
+            if w._enters >= 2:
+              w.destroy()
+            return False
+          w.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK)
+          w.connect("enter-notify-event", on_enter)
           w.connect("destroy", Gtk.main_quit)
+          w.connect("focus-out-event", on_focus_out)
           w.show_all()
           Gtk.main()
         '';
@@ -433,6 +444,48 @@ in
     enable = true;
     shellAliases = {
       rebuild = "sudo nixos-rebuild switch --flake /etc/nixos#laptop";
+    };
+  };
+
+  # Starship prompt — Gruvbox Material palette, git-aware
+  programs.starship = {
+    enable = true;
+    enableBashIntegration = true;
+    settings = {
+      add_newline = false;
+      format = "$directory$git_branch$git_status$character";
+
+      character = {
+        success_symbol = "[❯](bold #a9b665)";
+        error_symbol = "[❯](bold #ea6962)";
+      };
+
+      directory = {
+        style = "bold #7daea3";
+        truncation_length = 3;
+        truncate_to_repo = true;
+      };
+
+      git_branch = {
+        symbol = " ";
+        style = "bold #d8a657";
+        format = "on [$symbol$branch]($style) ";
+      };
+
+      git_status = {
+        style = "#e78a4e";
+        format = "([\\[$all_status$ahead_behind\\]]($style) )";
+        conflicted = "=";
+        ahead = "⇡$count";
+        behind = "⇣$count";
+        diverged = "⇕⇡$ahead_count⇣$behind_count";
+        untracked = "?";
+        stashed = "\\$";
+        modified = "!";
+        staged = "+";
+        renamed = "»";
+        deleted = "✘";
+      };
     };
   };
 
@@ -871,7 +924,6 @@ in
         "size 300 275, class:^(pomodoro-popup)$"
         "move cursor -150 0, class:^(pomodoro-popup)$"
         "animation slide, class:^(pomodoro-popup)$"
-        "noinitialfocus, class:^(pomodoro-popup)$"
       ];
 
       exec-once = [

@@ -120,6 +120,7 @@
     git
     discord
     noisetorch
+    cmatrix
   ];
 
   programs.hyprland.enable = true;
